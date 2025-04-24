@@ -7,6 +7,8 @@ import { app } from 'electron'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { AuthModule } from './modules/auth/auth.module'
+import { DiscordManagerModule } from './modules/discord-manager/discord-manager.module'
+import { DiscordManagerService } from './modules/discord-manager/discord-manager.service'
 import { FileManagerModule } from './modules/file-manager/file-manager.module'
 import { GameMonitorModule } from './modules/game-monitor/game-monitor.module'
 import { ImageProcessorModule } from './modules/image-processor/image-processor.module'
@@ -16,6 +18,8 @@ import { MessageModule } from './modules/message/message.module'
 import { OverlayWindowModule } from './modules/overlay-window/overlay-window.module'
 import { OverlayWindowService } from './modules/overlay-window/overlay-window.service'
 import { ProcessModule } from './modules/process/process.module'
+import { UpdateManagerModule } from './modules/update-manager/update-manager.module'
+import { UpdateManagerService } from './modules/update-manager/update-manager.service'
 
 // Winston 설정을 별도 상수로 분리
 export const winstonConfig = {
@@ -55,15 +59,23 @@ export const winstonConfig = {
     ImageProcessorModule,
     FileManagerModule,
     AuthModule,
+    UpdateManagerModule,
+    DiscordManagerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule implements OnModuleInit, OnModuleDestroy {
-  constructor(private readonly overlayWindowService: OverlayWindowService) {}
+  constructor(
+    private readonly overlayWindowService: OverlayWindowService,
+    private readonly updateManagerService: UpdateManagerService,
+    private readonly discordManagerService: DiscordManagerService,
+  ) {}
 
   async onModuleInit() {
     await this.overlayWindowService.initialize()
+    await this.updateManagerService.initialize()
+    await this.discordManagerService.initialize()
   }
 
   onModuleDestroy() {

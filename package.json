@@ -1,9 +1,9 @@
 {
-  "name": "racla-vite",
+  "name": "racla-electron-app",
   "version": "0.8.0",
   "private": true,
   "packageManager": "pnpm@10.9.0",
-  "description": "RACLA for Desktop (Vite)",
+  "description": "RACLA for Desktop",
   "author": "RACLA from 공감대로0번길(GGDRN0 STUDIO)",
   "main": "dist/main/index.js",
   "scripts": {
@@ -33,7 +33,7 @@
     "dotenv": "^16.5.0",
     "electron-builder-squirrel-windows": "^26.0.12",
     "electron-updater": "^6.6.2",
-    "framer-motion": "^12.8.0",
+    "framer-motion": "^12.8.2",
     "get-windows": "^9.2.0",
     "nest-winston": "^1.10.2",
     "node-abi": "^4.3.0",

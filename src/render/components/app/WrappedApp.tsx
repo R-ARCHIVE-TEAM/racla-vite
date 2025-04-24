@@ -3,6 +3,7 @@ import { useAuth } from '@render/hooks/useAuth'
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Outlet, useLocation } from 'react-router-dom'
+import { v4 as uuidv4 } from 'uuid'
 import apiClient from '../../../libs/apiClient'
 import { useNotificationSystem } from '../../hooks/useNotifications'
 import { createLog } from '../../libs/logger'
@@ -33,9 +34,103 @@ export default function WrappedApp() {
   const { notifications, removeNotification, showNotification } = useNotificationSystem()
   const dispatch = useDispatch()
   const { logout } = useAuth()
+  const [updateNotificationId, setUpdateNotificationId] = useState<string | null>(null)
+
+  // 업데이트 관련 이벤트 리스너
+  useEffect(() => {
+    if (!window.electron) return
+
+    // 업데이트 가용 시 이벤트 리스너
+    const updateAvailableHandler = (version: string) => {
+      createLog('info', 'Update Available:', version)
+      const id = uuidv4()
+      setUpdateNotificationId(id)
+      dispatch({
+        type: 'app/addNotification',
+        payload: {
+          id,
+          message: {
+            mode: 'i18n',
+            value: 'update.updateAvailable',
+            ns: 'common',
+          },
+          type: 'update',
+          updateInfo: { version },
+          isRemoving: false,
+        },
+      })
+    }
+
+    // 다운로드 진행 상황 이벤트 리스너
+    const downloadProgressHandler = (progress: {
+      percent: number
+      transferred: number
+      total: number
+    }) => {
+      createLog('info', 'Update Download Progress:', progress)
+      if (updateNotificationId) {
+        dispatch({
+          type: 'app/updateNotification',
+          payload: {
+            id: updateNotificationId,
+            data: {
+              message: {
+                mode: 'i18n',
+                value: 'update.downloading',
+                ns: 'common',
+                props: {
+                  percent: Math.round(progress.percent),
+                },
+              },
+              updateInfo: { progress },
+            },
+          },
+        })
+      }
+    }
+
+    // 업데이트 다운로드 완료 이벤트 리스너
+    const updateDownloadedHandler = (version: string) => {
+      createLog('info', 'Update Downloaded:', version)
+      if (updateNotificationId) {
+        dispatch({
+          type: 'app/updateNotification',
+          payload: {
+            id: updateNotificationId,
+            data: {
+              message: {
+                mode: 'i18n',
+                value: 'update.downloaded',
+                ns: 'common',
+              },
+              updateInfo: { version, isDownloaded: true },
+            },
+          },
+        })
+      }
+    }
+
+    // 이벤트 리스너 등록
+    if (window.electron.onUpdateAvailable) {
+      window.electron.onUpdateAvailable(updateAvailableHandler)
+    }
+
+    if (window.electron.onDownloadProgress) {
+      window.electron.onDownloadProgress(downloadProgressHandler)
+    }
+
+    if (window.electron.onUpdateDownloaded) {
+      window.electron.onUpdateDownloaded(updateDownloadedHandler)
+    }
+
+    // 정리 함수
+    return () => {
+      // 이벤트 리스너 정리 (필요하다면 구현)
+    }
+  }, [dispatch, updateNotificationId])
 
   // 곡 데이터 로드 함수
-  const loadSongDataFromAPI = useCallback(async (gameCode: string) => {
+  const loadSongDataFromAPI = useCallback(async (gameCode: string, showNotifications = false) => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL
       let endpoint = ''
@@ -97,7 +192,7 @@ export default function WrappedApp() {
           ? `${gameCode} 곡 데이터 로드 및 저장 완료`
           : `${gameCode} Song data loaded and saved`,
       )
-      isLoading &&
+      showNotifications &&
         showNotification(
           {
             mode: 'i18n',
@@ -109,7 +204,7 @@ export default function WrappedApp() {
       return data
     } catch (error) {
       await createLog('error', `${gameCode} 곡 데이터 로드 실패:`, error.message)
-      isLoading &&
+      showNotifications &&
         showNotification(
           {
             mode: 'i18n',
@@ -126,7 +221,7 @@ export default function WrappedApp() {
           if (localData && localData.length > 0) {
             dispatch(setSongData({ data: localData, gameCode }))
             await createLog('debug', `${gameCode} 로컬 곡 데이터 로드 완료`)
-            isLoading &&
+            showNotifications &&
               showNotification(
                 {
                   mode: 'i18n',
@@ -140,7 +235,7 @@ export default function WrappedApp() {
         }
       } catch (localError) {
         await createLog('error', `${gameCode} 로컬 곡 데이터 로드 실패:`, localError)
-        isLoading &&
+        showNotifications &&
           showNotification(
             {
               mode: 'i18n',
@@ -156,11 +251,14 @@ export default function WrappedApp() {
   }, [])
 
   // 모든 게임 데이터 로드
-  const loadAllSongData = useCallback(async () => {
-    const games = ['djmax_respect_v', 'wjmax', 'platina_lab']
-    const promises = games.map((game) => loadSongDataFromAPI(game))
-    await Promise.allSettled(promises)
-  }, [loadSongDataFromAPI])
+  const loadAllSongData = useCallback(
+    async (showNotifications = false) => {
+      const games = ['djmax_respect_v', 'wjmax', 'platina_lab']
+      const promises = games.map((game) => loadSongDataFromAPI(game, showNotifications))
+      await Promise.allSettled(promises)
+    },
+    [loadSongDataFromAPI],
+  )
 
   // 오버레이 모드 확인 및 설정
   useEffect(() => {
@@ -314,8 +412,8 @@ export default function WrappedApp() {
             logout()
           }
 
-          // 3. 곡 데이터 로드
-          await loadAllSongData()
+          // 3. 곡 데이터 로드 (초기 로딩 시에만 알림 표시)
+          await loadAllSongData(true)
           dispatch(setIsLoading(false))
         } catch (error) {
           createLog(
@@ -331,7 +429,7 @@ export default function WrappedApp() {
         initializeApp()
       }
 
-      // 5분마다 곡 데이터 리프레시
+      // 5분마다 곡 데이터 리프레시 (알림 표시 없음)
       const songRefreshInterval = setInterval(
         () => {
           createLog(
@@ -340,7 +438,7 @@ export default function WrappedApp() {
               ? '5분 주기 곡 데이터 새로고침 중...'
               : '5-minute song data refresh in progress...',
           )
-          loadAllSongData()
+          loadAllSongData(false) // 알림 표시 안함
         },
         5 * 60 * 1000,
       ) // 5분마다 실행
