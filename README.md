@@ -4,7 +4,9 @@
 RACLA는 GGDRN0 STUDIO에서 개발한 종합리듬 게임 성과 관리 도구입니다.    
 본 레포지토리에서는 Vite로 개발된 RACLA 데스크톱 앱의 소스코드와 최종 결과물인 소프트웨어를 Windows 플랫폼으로 배포합니다.    
     
-0.7 버전대까지 사용된 Nextron 기반의 데스크톱 앱은 [RACLA-DEV/racla](https://github.com/RACLA-DEV/racla)에서 확인하실 수 있습니다.
+0.7 버전대까지 사용된 Nextron 기반의 데스크톱 앱은 [RACLA-DEV/racla](https://github.com/RACLA-DEV/racla/tree/main-nextron))에서 확인하실 수 있습니다.
+
+**[RACLA-DEV/racla](https://github.com/RACLA-DEV/racla) main 브랜치로 소스 코드를 병합하여 해당 포크 레포지토리는 아카이빙 처리되었습니다.**
 
 ## 지원 게임
 **[DJMAX RESPECT V - 디제이맥스 리스펙트 V](https://store.steampowered.com/app/960170/DJMAX_RESPECT_V/)**: 웹 성과 관리 도구 [V-ARCHIVE](https://v-archive.net), [전일 아카이브](https://hard-archive.com)와 연동됩니다.    
